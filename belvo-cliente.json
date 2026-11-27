@@ -1,0 +1,25 @@
+{
+  "client_id": "https://matosmagalhaesbreno-del.github.io/finn-app/belvo-cliente.json",
+  "client_name": "Jarvis Finance",
+  "client_uri": "https://matosmagalhaesbreno-del.github.io/finn-app/",
+  "logo_uri": "https://matosmagalhaesbreno-del.github.io/finn-app/icone-512.png",
+  "redirect_uris": [
+    "http://127.0.0.1:53682/callback",
+    "http://localhost:53682/callback",
+    "http://127.0.0.1:53683/callback",
+    "http://localhost:53683/callback",
+    "http://127.0.0.1:53684/callback",
+    "http://localhost:53684/callback",
+    "http://127.0.0.1:53685/callback",
+    "http://localhost:53685/callback"
+  ],
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "none",
+  "scope": "openid profile email offline_access"
+}
