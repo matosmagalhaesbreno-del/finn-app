@@ -93,6 +93,7 @@
     }
     const prox = eventosDoDia(D, hoje).filter(e => !e.diaInteiro && new Date(e.inicio) > agora && new Date(e.inicio) - agora < 3 * 36e5)[0];
     if (prox) out.push({ nivel: 'baixo', id: 'ag-' + prox.id, ic: 'calendario', ir: 'hoje', alvo: 'agenda', titulo: `${hhmm(prox.inicio)} · ${prox.titulo}`, texto: prox.local || 'Seu próximo compromisso de hoje' });
+    for (const f of ((G.FinnExt || {}).prioridades || [])) { try { out.push(...(f(D, hoje) || [])); } catch (e) { console.error(e); } }
     const NIVEL = { alto: 0, medio: 1, baixo: 2 };
     return out.sort((a, b) => (NIVEL[a.nivel] ?? 3) - (NIVEL[b.nivel] ?? 3));
   }
