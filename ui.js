@@ -6,11 +6,11 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const PC = !!window.api;
-  const VERSAO = '1.2.1';
+  const VERSAO = '1.3.0';
   // módulos extras (ex.: a aba Contas) se registram aqui antes do ui.js rodar
   const EXT = window.FinnExt = window.FinnExt || {};
   for (const k of ['telas', 'folhas', 'acoes', 'titulos', 'icones']) EXT[k] = EXT[k] || {};
-  for (const k of ['aoIniciar', 'antesDeSalvar', 'alertas', 'aoMudar']) EXT[k] = EXT[k] || [];
+  for (const k of ['aoIniciar', 'antesDeSalvar', 'alertas', 'aoMudar', 'ajustes']) EXT[k] = EXT[k] || [];
 
   /* ---------- ícones ---------- */
   const P = {
@@ -83,7 +83,7 @@
   let foto = new Map(), tSalvar = null, redesenhoPendente = false;
   const hojeYM = () => F.hoje().slice(0, 7);
   const M = {
-    tela: 'inicio', periodo: 'mes', mes: hojeYM(), grupoAberto: null,
+    tela: 'hoje', ultimaFin: 'inicio', periodo: 'mes', mes: hojeYM(), grupoAberto: null,
     filtro: { q: '', tipo: '', banco: '', cat: '', mes: 'todos' }, filtrosAbertos: false,
     folha: null, pensando: false, iaOk: false, belvo: null, belvoOcupado: '',
   };
@@ -115,14 +115,23 @@
   /* =====================================================================
      TELAS
      ===================================================================== */
-  const TITULOS = { inicio: 'Início', mov: 'Movimentações', finn: 'Jarvis', planos: 'Planos', ajustes: 'Ajustes', ...EXT.titulos };
+  const TITULOS = { inicio: 'Resumo', mov: 'Movimentações', finn: 'Jarvis', planos: 'Planos', ajustes: 'Ajustes', ...EXT.titulos };
+  // Finanças agrupa quatro telas; no celular elas ficam numa aba só, com um seletor em cima
+  const FIN = ['inicio', 'mov', 'contas', 'planos'];
+  const NOMES_FIN = { inicio: 'Resumo', mov: 'Extrato', contas: 'Contas', planos: 'Planos' };
+  const celular = () => !window.matchMedia('(min-width: 820px)').matches;
 
   function desenhar() {
+    const telas = { inicio: telaInicio, mov: telaMov, finn: telaFinn, planos: telaPlanos, ajustes: telaAjustes, ...EXT.telas };
+    if (!telas[M.tela]) M.tela = telas.hoje ? 'hoje' : 'inicio';
     document.body.dataset.atual = M.tela;
-    $$('button[data-tela]').forEach(b => b.classList.toggle('on', b.dataset.tela === M.tela));
-    $('#titulo').textContent = TITULOS[M.tela];
-    const fn = { inicio: telaInicio, mov: telaMov, finn: telaFinn, planos: telaPlanos, ajustes: telaAjustes, ...EXT.telas }[M.tela] || telaInicio;
-    fn();
+    const fin = FIN.includes(M.tela);
+    if (fin) M.ultimaFin = M.tela;
+    $$('button[data-tela]').forEach(b => b.classList.toggle('on', b.dataset.tela === M.tela || (b.dataset.tela === 'financas' && fin)));
+    $('#titulo').textContent = fin && celular() ? 'Finanças' : TITULOS[M.tela];
+    const sn = $('#subnav');
+    if (sn) { sn.innerHTML = fin ? `<div class="seg largo">${FIN.map(t => `<button class="${t === M.tela ? 'on' : ''}" data-tela="${t}">${NOMES_FIN[t]}</button>`).join('')}</div>` : ''; sn.classList.toggle('on', fin); }
+    telas[M.tela]();
     EXT.aoMudar.forEach(f => { try { f(M.tela); } catch (e) { console.error(e); } });
     statusNuvem();
   }
@@ -287,6 +296,7 @@
 
   /* ---------- Jarvis Finance (chat) ---------- */
   const SUGESTOES = ['Como foi meu mês?', 'Onde eu posso cortar gastos?', 'Monte um plano pra eu juntar uma reserva', 'Quais são minhas contas fixas?', 'Quanto gastei de Uber?', 'Quero atualizar minha renda'];
+  const SUGESTOES_CHAT = ['O que eu tenho hoje?', 'Como foi meu mês?', 'O que eu já aprendi sobre foco?', 'Me lembra de pagar o IPVA na sexta', 'Onde eu posso cortar gastos?', 'Monte um plano pra eu juntar uma reserva'];
   function telaFinn() {
     $('#tela').innerHTML = `<div class="chat">
       <div class="chat-topo">${M.iaOk ? `<span class="ok-ia">${ic('check')} IA conectada</span>` : `<span class="sem-ia">IA não configurada</span>`}${(D.chat || []).length ? `<button class="btn link" data-acao="limpar-chat">Nova conversa</button>` : ''}</div>
@@ -304,8 +314,8 @@
     let h = '';
     if (!M.iaOk) h += `<div class="card config-ia">${blocoIA(true)}</div>`;
     if (!msgs.length) {
-      h += `<div class="boas-vindas"><div class="avatar grande-av">${ic('finn')}</div><h2>Oi${perfilD().nome ? ', ' + esc(perfilD().nome) : ''}! Eu sou o Jarvis.</h2><p>Olho todas as suas movimentações, explico pra onde vai o dinheiro e monto planos com você. Pode perguntar do seu jeito.</p>
-        <div class="chips">${SUGESTOES.map(s => `<button class="chip" data-acao="perguntar" data-v="${esc(s)}" ${M.iaOk ? '' : 'disabled'}>${esc(s)}</button>`).join('')}</div></div>`;
+      h += `<div class="boas-vindas"><div class="avatar grande-av">${ic('finn')}</div><h2>Oi${perfilD().nome ? ', ' + esc(perfilD().nome) : ''}! Eu sou o Jarvis.</h2><p>Cuido do seu dinheiro, da sua rotina, do seu segundo cérebro e da sua biblioteca. Pode perguntar do seu jeito.</p>
+        <div class="chips">${SUGESTOES_CHAT.map(s => `<button class="chip" data-acao="perguntar" data-v="${esc(s)}" ${M.iaOk ? '' : 'disabled'}>${esc(s)}</button>`).join('')}</div></div>`;
     }
     for (const m of msgs) {
       if (m.papel === 'eu') h += `<div class="msg eu"><div class="balao">${esc(m.texto).replace(/\n/g, '<br>')}</div></div>`;
@@ -339,7 +349,7 @@
     const ta = $('#chat-texto'); if (ta) { ta.value = ''; ajustaAltura(ta); }
     let resposta;
     try {
-      const r = await A.responder(texto, { ...D, chat: D.chat.slice(0, -1) }, { aoMudar: () => { salvar(); } });
+      const r = await A.responder(texto, D, { historico: D.chat.slice(0, -1), aoMudar: () => { salvar(); } });
       resposta = { id: F.uid(), papel: 'finn', texto: r.texto, acoes: r.acoes, em: new Date().toISOString() };
     } catch (e) {
       resposta = { id: F.uid(), papel: 'finn', texto: '', erro: e.message, em: new Date().toISOString() };
@@ -434,6 +444,7 @@
       <div class="linha-btn"><label class="btn">${ic('importar')} Importar extrato<input type="file" id="arq-import" accept=".pdf,.ofx,.csv,.txt,.json" hidden></label>
       <button class="btn" data-acao="exportar-csv">${ic('exportar')} Exportar planilha (CSV)</button>
       <button class="btn" data-acao="exportar-json">${ic('exportar')} Backup completo</button></div></section>`;
+    for (const f of EXT.ajustes) { try { h += f() || ''; } catch (e) { console.error(e); } }
     h += `<section class="card"><div class="rot">Sobre</div><p class="muted pequeno">Jarvis Finance ${VERSAO} · ${D.transacoes.length} movimentações · dados guardados ${PC ? 'neste computador' : 'neste celular'}${N.ligada() ? ' e no seu cofre privado do GitHub' : ''}.</p>
       <button class="btn link perigo" data-acao="apagar-tudo">Apagar todos os dados ${PC ? 'deste computador' : 'deste celular'}</button></section>`;
     h += `</div>`;
@@ -575,7 +586,12 @@
     const ir = ev.target.closest('[data-ir]');
     if (ir) { M.tela = ir.dataset.ir; fecharFolha(); desenhar(); $('#tela').scrollTop = 0; return; }
     const tab = ev.target.closest('button[data-tela]');
-    if (tab) { if (M.tela === tab.dataset.tela) { $('#tela').scrollTo({ top: 0, behavior: 'smooth' }); return; } M.tela = tab.dataset.tela; fecharFolha(); desenhar(); $('#tela').scrollTop = 0; return; }
+    if (tab) {
+      let alvo = tab.dataset.tela;
+      if (alvo === 'financas') alvo = FIN.includes(M.tela) ? M.tela : (M.ultimaFin || 'inicio');
+      if (M.tela === alvo) { $('#tela').scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      M.tela = alvo; fecharFolha(); desenhar(); $('#tela').scrollTop = 0; return;
+    }
     if (ev.target.id === 'folha') return fecharFolha();
     const b = ev.target.closest('[data-acao]'); if (!b || b.disabled) return;
     const v = b.dataset.v;
@@ -852,8 +868,8 @@
 
   async function iniciar() {
     // testes automáticos: servidores simulados no lugar do GitHub e da IA
-    if (PC && window.api.teste) { if (window.api.teste.apiGithub) window.API_BASE = window.api.teste.apiGithub; }
-    if (!PC && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) { const q = new URLSearchParams(location.search); if (q.get('api')) window.API_BASE = q.get('api'); if (q.get('gemini')) window.GEMINI_BASE = q.get('gemini'); }
+    if (PC && window.api.teste) { if (window.api.teste.apiGithub) window.API_BASE = window.api.teste.apiGithub; if (window.api.teste.clima) window.CLIMA_BASE = window.CLIMA_GEO = window.api.teste.clima; }
+    if (!PC && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) { const q = new URLSearchParams(location.search); if (q.get('api')) window.API_BASE = q.get('api'); if (q.get('gemini')) window.GEMINI_BASE = q.get('gemini'); if (q.get('clima')) window.CLIMA_BASE = window.CLIMA_GEO = q.get('clima'); }
     document.body.classList.add(PC ? 'pc' : 'web');
     if (PC && window.api.plataforma) document.body.classList.add('so-' + window.api.plataforma);
     if (!PC) { ajustaTopo(); addEventListener('resize', ajustaTopo); }
@@ -919,6 +935,7 @@
 
   window.__finn = { get D() { return D; }, M, salvar, enviarMensagem, desenhar, abrirFolha, fecharFolha, belvoSincronizar, ligarNuvem, configurarIA, importar, atualizarAppCelular };
   // o que os módulos extras podem usar
-  window.__ui = { get D() { return D; }, M, PC, Plat, N, F, salvar, aviso, certeza, ic, P, esc, bolinha, logoBanco, quando, abrirFolha, fecharFolha, desenhar, redesenhar, numero: s => numero(s), opcoesCat: (a, g) => opcoesCat(a, g), baixar, hojeYM, enviarMensagem };
+  const irPara = t => { M.tela = t; fecharFolha(); desenhar(); const tl = $('#tela'); if (tl) tl.scrollTop = 0; };
+  window.__ui = { get D() { return D; }, M, PC, Plat, N, F, A, VERSAO, salvar, aviso, certeza, ic, P, esc, bolinha, logoBanco, quando, abrirFolha, fecharFolha, desenhar, redesenhar, numero: s => numero(s), opcoesCat: (a, g) => opcoesCat(a, g), baixar, hojeYM, enviarMensagem, markdown, saudacao, irPara, ajustaAltura, celular };
   iniciar().catch(e => { console.error(e); document.body.insertAdjacentHTML('beforeend', `<pre class="erro-fatal">${esc(e.stack || e.message)}</pre>`); });
 })();
