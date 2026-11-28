@@ -152,6 +152,7 @@
       ${item('escudo', 'Firewall do Windows', 'Na primeira vez, o Windows pergunta se o Jarvis Finance pode usar a rede: marque <b>Redes privadas</b> e clique em Permitir. Se negou sem querer: Segurança do Windows → Firewall e proteção de rede → Permitir um aplicativo pelo firewall.')}
       ${item('wifi', 'Mesmo Wi-Fi', 'Se o roteador reiniciar e o endereço do PC mudar, escaneie o QR de novo. Para não mudar mais, reserve o IP do PC nas configurações do roteador.')}
       ${item('celular', 'Tela acesa', 'O deck pede para a tela do celular não apagar enquanto está aberto. Se apagar mesmo assim: Ajustes do iPhone → Tela e Brilho → Bloqueio Automático.')}
+      ${item('celular', 'Deitado vira um Stream Deck', 'Gire o celular: as teclas ficam maiores, em linhas compridas, e o volume vira um fader ao lado. Se não girar, desligue o <b>Bloqueio de Rotação</b> na Central de Controle do iPhone.')}
     </ul></section>`;
   }
   function telaDeck() {
