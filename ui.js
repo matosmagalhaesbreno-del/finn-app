@@ -6,7 +6,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const PC = !!window.api;
-  const VERSAO = '1.6.0';
+  const VERSAO = '1.6.1';
   // módulos extras (ex.: a aba Contas) se registram aqui antes do ui.js rodar
   const EXT = window.FinnExt = window.FinnExt || {};
   for (const k of ['telas', 'folhas', 'acoes', 'titulos', 'icones']) EXT[k] = EXT[k] || {};
