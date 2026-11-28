@@ -153,6 +153,7 @@
       ${item('wifi', 'Mesmo Wi-Fi', 'Se o roteador reiniciar e o endereço do PC mudar, escaneie o QR de novo. Para não mudar mais, reserve o IP do PC nas configurações do roteador.')}
       ${item('celular', 'Tela acesa', 'O deck pede para a tela do celular não apagar enquanto está aberto. Se apagar mesmo assim: Ajustes do iPhone → Tela e Brilho → Bloqueio Automático.')}
       ${item('celular', 'Deitado vira um Stream Deck', 'Gire o celular: as teclas ficam maiores, em linhas compridas, e o volume vira um fader ao lado. Se não girar, desligue o <b>Bloqueio de Rotação</b> na Central de Controle do iPhone.')}
+      ${item('celular', 'Janelas: o Alt+Tab no celular', 'O botão de janelas, ao lado do volume, mostra o que está aberto no PC: toque para trazer para a frente, ou no número para mandar para o outro monitor. As miniaturas só passam pelo Wi-Fi de casa, só enquanto o painel está aberto, e dá para desligar nos ajustes do deck.')}
     </ul></section>`;
   }
   function telaDeck() {
