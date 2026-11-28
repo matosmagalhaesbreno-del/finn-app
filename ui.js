@@ -6,7 +6,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const PC = !!window.api;
-  const VERSAO = '1.3.0';
+  const VERSAO = '1.4.0';
   // módulos extras (ex.: a aba Contas) se registram aqui antes do ui.js rodar
   const EXT = window.FinnExt = window.FinnExt || {};
   for (const k of ['telas', 'folhas', 'acoes', 'titulos', 'icones']) EXT[k] = EXT[k] || {};
@@ -116,21 +116,28 @@
      TELAS
      ===================================================================== */
   const TITULOS = { inicio: 'Resumo', mov: 'Movimentações', finn: 'Jarvis', planos: 'Planos', ajustes: 'Ajustes', ...EXT.titulos };
-  // Finanças agrupa quatro telas; no celular elas ficam numa aba só, com um seletor em cima
+  // no celular, algumas telas ficam numa aba só, com um seletor em cima (Finanças, Memória e Hoje + Hábitos)
   const FIN = ['inicio', 'mov', 'contas', 'planos'];
   const NOMES_FIN = { inicio: 'Resumo', mov: 'Extrato', contas: 'Contas', planos: 'Planos' };
+  const GRUPOS_NAV = {
+    financas: { titulo: 'Finanças', telas: FIN, nomes: NOMES_FIN },
+    memoria: { titulo: 'Memória', telas: ['cerebro', 'biblioteca'], nomes: { cerebro: 'Segundo cérebro', biblioteca: 'Biblioteca' } },
+    hoje: { titulo: null, telas: ['hoje', 'habitos'], nomes: { hoje: 'Hoje', habitos: 'Hábitos e saúde' } },
+  };
+  const grupoDaTela = (t, telas) => Object.keys(GRUPOS_NAV).find(g => GRUPOS_NAV[g].telas.includes(t) && GRUPOS_NAV[g].telas.filter(x => telas[x] || FIN.includes(x)).length > 1) || null;
   const celular = () => !window.matchMedia('(min-width: 820px)').matches;
 
   function desenhar() {
     const telas = { inicio: telaInicio, mov: telaMov, finn: telaFinn, planos: telaPlanos, ajustes: telaAjustes, ...EXT.telas };
     if (!telas[M.tela]) M.tela = telas.hoje ? 'hoje' : 'inicio';
     document.body.dataset.atual = M.tela;
-    const fin = FIN.includes(M.tela);
+    const fin = FIN.includes(M.tela), g = grupoDaTela(M.tela, telas), G = g && GRUPOS_NAV[g];
     if (fin) M.ultimaFin = M.tela;
-    $$('button[data-tela]').forEach(b => b.classList.toggle('on', b.dataset.tela === M.tela || (b.dataset.tela === 'financas' && fin)));
-    $('#titulo').textContent = fin && celular() ? 'Finanças' : TITULOS[M.tela];
+    if (g) M.ultimaGrupo = Object.assign(M.ultimaGrupo || {}, { [g]: M.tela });
+    $$('button[data-tela]').forEach(b => b.classList.toggle('on', b.dataset.tela === M.tela || (!!g && b.dataset.tela === g && b.closest('#abas') !== null)));
+    $('#titulo').textContent = G && G.titulo && celular() ? G.titulo : (TITULOS[M.tela] || EXT.titulos[M.tela] || '');
     const sn = $('#subnav');
-    if (sn) { sn.innerHTML = fin ? `<div class="seg largo">${FIN.map(t => `<button class="${t === M.tela ? 'on' : ''}" data-tela="${t}">${NOMES_FIN[t]}</button>`).join('')}</div>` : ''; sn.classList.toggle('on', fin); }
+    if (sn) { sn.innerHTML = G ? `<div class="seg largo">${G.telas.filter(t => telas[t]).map(t => `<button class="${t === M.tela ? 'on' : ''}" data-tela="${t}">${G.nomes[t]}</button>`).join('')}</div>` : ''; sn.classList.toggle('on', !!G); }
     telas[M.tela]();
     EXT.aoMudar.forEach(f => { try { f(M.tela); } catch (e) { console.error(e); } });
     statusNuvem();
@@ -589,6 +596,7 @@
     if (tab) {
       let alvo = tab.dataset.tela;
       if (alvo === 'financas') alvo = FIN.includes(M.tela) ? M.tela : (M.ultimaFin || 'inicio');
+      else if (GRUPOS_NAV[alvo] && alvo !== 'hoje') alvo = GRUPOS_NAV[alvo].telas.includes(M.tela) ? M.tela : ((M.ultimaGrupo || {})[alvo] || GRUPOS_NAV[alvo].telas[0]);
       if (M.tela === alvo) { $('#tela').scrollTo({ top: 0, behavior: 'smooth' }); return; }
       M.tela = alvo; fecharFolha(); desenhar(); $('#tela').scrollTop = 0; return;
     }
@@ -868,8 +876,8 @@
 
   async function iniciar() {
     // testes automáticos: servidores simulados no lugar do GitHub e da IA
-    if (PC && window.api.teste) { if (window.api.teste.apiGithub) window.API_BASE = window.api.teste.apiGithub; if (window.api.teste.clima) window.CLIMA_BASE = window.CLIMA_GEO = window.api.teste.clima; }
-    if (!PC && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) { const q = new URLSearchParams(location.search); if (q.get('api')) window.API_BASE = q.get('api'); if (q.get('gemini')) window.GEMINI_BASE = q.get('gemini'); if (q.get('clima')) window.CLIMA_BASE = window.CLIMA_GEO = q.get('clima'); }
+    if (PC && window.api.teste) { if (window.api.teste.apiGithub) window.API_BASE = window.api.teste.apiGithub; if (window.api.teste.clima) window.CLIMA_BASE = window.CLIMA_GEO = window.api.teste.clima; if (window.api.teste.geo) window.GEO_CEP = window.GEO_NOMI = window.GEO_OVERPASS = window.api.teste.geo; }
+    if (!PC && /^(127\.0\.0\.1|localhost)$/.test(location.hostname)) { const q = new URLSearchParams(location.search); if (q.get('api')) window.API_BASE = q.get('api'); if (q.get('gemini')) window.GEMINI_BASE = q.get('gemini'); if (q.get('clima')) window.CLIMA_BASE = window.CLIMA_GEO = q.get('clima'); if (q.get('geo')) window.GEO_CEP = window.GEO_NOMI = window.GEO_OVERPASS = q.get('geo'); }
     document.body.classList.add(PC ? 'pc' : 'web');
     if (PC && window.api.plataforma) document.body.classList.add('so-' + window.api.plataforma);
     if (!PC) { ajustaTopo(); addEventListener('resize', ajustaTopo); }
