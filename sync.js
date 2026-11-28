@@ -4,7 +4,7 @@
    sem nenhum dado dentro dele. */
 (function (G) {
   'use strict';
-  const COLECOES = (G.Finn && G.Finn.COLECOES) || ['contas', 'transacoes', 'renda', 'orcamentos', 'metas', 'planos', 'regras', 'chat', 'perfil', 'fixas', 'faturas'];
+  const COLECOES = (G.Finn && G.Finn.COLECOES) || ['contas', 'transacoes', 'renda', 'orcamentos', 'metas', 'planos', 'regras', 'chat', 'perfil', 'fixas', 'faturas', 'tarefas', 'agenda', 'emails', 'briefings', 'atalhos', 'notas', 'biblioteca'];
 
   // campos que começam com "_" são calculados no aparelho e não viajam
   const limpo = r => { const o = {}; for (const k in r) if (k[0] !== '_' && k !== 'mod') o[k] = r[k]; return o; };
@@ -150,7 +150,7 @@
       const pasta = arq.split('/').slice(0, -1).join('/');
       const ex = (await this.listarPasta(pasta)).find(x => x.path === arq);
       if (ex && ex.sha === await this.shaGit(bytes).catch(() => '')) return true;
-      const r = await this.api('PUT', this.caminho(arq), { message: 'conta em PDF', content: b64.deBytes(bytes), ...(ex ? { sha: ex.sha } : {}) });
+      const r = await this.api('PUT', this.caminho(arq), { message: arq.startsWith('contas/') ? 'conta em PDF' : arq.startsWith('cerebro/') ? 'segundo cérebro' : 'biblioteca', content: b64.deBytes(bytes), ...(ex ? { sha: ex.sha } : {}) });
       if ((r.status === 409 || r.status === 422) && tentativa < 2) { await new Promise(ok => setTimeout(ok, 800)); return this.enviarArquivo(arq, bytes, tentativa + 1); }
       if (!r.ok) throw await this.falha(r);
       return true;
@@ -164,7 +164,7 @@
     async apagarArquivo(arq) {
       const pasta = arq.split('/').slice(0, -1).join('/');
       const ex = (await this.listarPasta(pasta)).find(x => x.path === arq); if (!ex) return true;
-      const r = await this.api('DELETE', this.caminho(arq), { message: 'remover conta', sha: ex.sha });
+      const r = await this.api('DELETE', this.caminho(arq), { message: 'remover arquivo', sha: ex.sha });
       if (!r.ok && r.status !== 404) throw await this.falha(r);
       return true;
     },
