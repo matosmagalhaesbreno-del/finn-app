@@ -229,6 +229,15 @@
     }
   }
 
+  /* ---------- módulos extras (Hoje, Cérebro, Biblioteca) se registram aqui ---------- */
+  const EXTRAS = [];
+  const ferramentasTodas = () => [...FERRAMENTAS, ...EXTRAS.flatMap(x => x.ferramentas || [])];
+  async function executarTudo(nome, a, D, acoes) {
+    if (FERRAMENTAS.some(f => f.name === nome)) return executar(nome, a, D, acoes);
+    for (const x of EXTRAS) if ((x.ferramentas || []).some(f => f.name === nome)) return await x.executar(nome, a || {}, D, acoes);
+    return { erro: 'Ferramenta desconhecida' };
+  }
+
   /* ---------- contexto que vai junto em toda conversa ---------- */
   function instrucoes(D) {
     const p = F.perfil(D), hoje = F.hoje(), mes = hoje.slice(0, 7);
@@ -247,7 +256,8 @@
       const fmt = i => `${G.Contas.nomeFixa(i.fixa)} ${i.estimado ? '~' : ''}${dinheiro(i.valor)} ${i.sit.txt.toLowerCase()}`;
       contasTxt = `${dinheiro(pc.falta)} a pagar nos próximos 30 dias${pc.atrasadas.length ? `; ATRASADAS: ${pc.atrasadas.map(fmt).join(', ')}` : ''}${pc.aPagar.length ? `; próximas: ${pc.aPagar.slice(0, 8).map(fmt).join(', ')}` : ''}; pagas em ${F.nomeMes(mes)}: ${dinheiro(pc.pago)}`;
     }
-    return `Você é o Jarvis, o agente financeiro pessoal de ${p.nome || 'o usuário'}. Ele conversa com você por mensagem, no computador ou no iPhone.
+    const extra = EXTRAS.map(x => { try { return x.contexto ? x.contexto(D) : ''; } catch (e) { return ''; } }).filter(Boolean).join('\n\n');
+    return `Você é o Jarvis, o assistente pessoal de ${p.nome || 'o usuário'}: cuida do dinheiro dele, da rotina (agenda, tarefas, e-mails), do segundo cérebro (notas, documentos, pessoas, metas, contratos, clientes, negócios, ideias) e da biblioteca (livros, artigos, vídeos, podcasts). Ele conversa com você por mensagem, no computador ou no iPhone.
 
 JEITO DE FALAR
 - Português do Brasil, direto, caloroso e prático, como um amigo que entende muito de dinheiro. Sem jargão.
@@ -287,7 +297,7 @@ DADOS ATUAIS
 - Limites do mês: ${orc || 'nenhum definido'}.
 - Metas: ${metas || 'nenhuma'}.
 - Plano ativo: ${plano ? plano.nome + ' — ' + plano.resumo : 'nenhum'}.
-- Alertas: ${alertas || 'nenhum'}.`;
+- Alertas: ${alertas || 'nenhum'}.${extra ? '\n\n' + extra : ''}`;
   }
 
   /* ---------- conversa ---------- */
@@ -313,15 +323,16 @@ DADOS ATUAIS
       return MODELOS_PADRAO[0];
     },
 
-    async responder(texto, D, { aoMudar } = {}) {
+    async responder(texto, D, { aoMudar, historico: hist } = {}) {
       if (!this.chamada) throw new Error('Configure a IA em Ajustes primeiro.');
       const modelo = this.modelo || MODELOS_PADRAO[0];
-      const historico = (D.chat || []).slice(-16).filter(m => m.texto).map(m => ({ role: m.papel === 'eu' ? 'user' : 'model', parts: [{ text: m.texto }] }));
+      // D é o objeto de dados de verdade (as ferramentas mudam ele direto); o histórico vem à parte
+      const historico = (hist || D.chat || []).slice(-16).filter(m => m.texto).map(m => ({ role: m.papel === 'eu' ? 'user' : 'model', parts: [{ text: m.texto }] }));
       // a API exige que a conversa comece pelo usuário
       while (historico.length && historico[0].role !== 'user') historico.shift();
       const contents = [...historico, { role: 'user', parts: [{ text: texto }] }];
       const acoes = [];
-      const corpoBase = () => ({ systemInstruction: { parts: [{ text: instrucoes(D) }] }, tools: [{ functionDeclarations: FERRAMENTAS }], generationConfig: { temperature: 0.5, maxOutputTokens: 2048 } });
+      const corpoBase = () => ({ systemInstruction: { parts: [{ text: instrucoes(D) }] }, tools: [{ functionDeclarations: ferramentasTodas() }], generationConfig: { temperature: 0.5, maxOutputTokens: 4096 } });
       let mudou = false;
       for (let volta = 0; volta < 8; volta++) {
         const r = await this.pedir(modelo, { ...corpoBase(), contents });
@@ -342,7 +353,7 @@ DADOS ATUAIS
         for (const c of chamadas) {
           let saida;
           const antes = acoes.length;
-          try { saida = executar(c.functionCall.name, c.functionCall.args, D, acoes); } catch (e) { saida = { erro: e.message }; }
+          try { saida = await executarTudo(c.functionCall.name, c.functionCall.args, D, acoes); } catch (e) { saida = { erro: e.message }; }
           if (acoes.length > antes) mudou = true;
           respostas.push({ functionResponse: { name: c.functionCall.name, response: { resultado: saida } } });
         }
@@ -377,6 +388,9 @@ DADOS ATUAIS
   }
 
   Agente.FERRAMENTAS = FERRAMENTAS;
+  Agente.EXTRAS = EXTRAS;
+  Agente.ferramentasTodas = ferramentasTodas;
+  Agente.executarTudo = executarTudo;
   Agente.executar = executar;
   Agente.instrucoes = instrucoes;
   Agente.erroAmigavel = erroAmigavel;
