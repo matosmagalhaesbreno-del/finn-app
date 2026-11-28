@@ -450,7 +450,8 @@
 
   /* ---------- dados vazios ---------- */
   const COLECOES = ['contas', 'transacoes', 'renda', 'orcamentos', 'metas', 'planos', 'regras', 'chat', 'perfil', 'fixas', 'faturas',
-    'tarefas', 'agenda', 'emails', 'briefings', 'atalhos', 'notas', 'biblioteca'];
+    'tarefas', 'agenda', 'emails', 'briefings', 'atalhos', 'notas', 'biblioteca',
+    'compras', 'mercados', 'idas', 'encartes', 'notasFiscais', 'precosSite', 'precos', 'pedidosMercado', 'habitos', 'checkins'];
   function vazio() { const D = { apagados: {} }; COLECOES.forEach(c => D[c] = []); perfil(D); return D; }
   function normaliza(D) {
     D = D || {};
