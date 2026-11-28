@@ -151,7 +151,8 @@
   }
 
   function telaHoje() {
-    const h = `<div class="hoje">${cabecalho()}<div class="grade hoje-grade">${cardBriefing()}${cardAtencao()}${cardAgenda()}${cardTarefas()}${cardDinheiro()}${cardEmails()}${cardLicao()}${cardFerramentas()}</div></div>`;
+    const extras = (EXT.cartoesHoje || []).map(f => { try { return f() || ''; } catch (e) { console.error(e); return ''; } }).join('');
+    const h = `<div class="hoje">${cabecalho()}<div class="grade hoje-grade">${cardBriefing()}${cardAtencao()}${cardAgenda()}${cardTarefas()}${extras}${cardDinheiro()}${cardEmails()}${cardLicao()}${cardFerramentas()}</div></div>`;
     $('#tela').innerHTML = h;
     if (!ST.clima && !ST.buscandoClima) buscarClima();
     briefingAutomatico();
